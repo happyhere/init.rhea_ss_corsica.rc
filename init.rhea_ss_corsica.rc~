@@ -1,5 +1,4 @@
 import init.bcm2165x.usb.rc
-import init.bt.rc
 import init.log.rc
 
 on early-init
@@ -53,7 +52,6 @@ on post-fs-data
     mkdir /data/misc/wifi 0775 wifi system
     mkdir /data/misc/wifi/sockets 0770 wifi wifi
     mkdir /data/misc/dhcp 0775 dhcp dhcp
-    mkdir /system/etc/wifi 0775 wifi wifi
     chown system system /efs/wifi/.mac.info
     chmod 0664 /efs/wifi/.mac.info
     chown system system /efs/imei/.nvmac.info
@@ -85,9 +83,6 @@ on post-fs-data
     chown system system /sys/class/backlight/panel/brightness
     chmod 0660 /sys/class/backlight/panel/brightness
 
-    chown system system /sys/class/backlight/keypad-led/brightness
-    chmod 0660 /sys/class/backlight/keypad-led/brightness
-
    chown system system /sys/class/backlight/touchkey-led/brightness
    chmod 0660 /sys/class/backlight/touchkey-led/brightness
 
@@ -114,12 +109,12 @@ on boot
 
 # Permissions for bluetooth
     setprop ro.bt.bdaddr_path "/efs/bluetooth/bt_addr"
-    chown bluetooth bluetooth ro.bt.bdaddr_path
-#    chown bluetooth bluetooth /dev/ttySAC0
-#    chmod 0600 /dev/ttySAC0
+    chown bluetooth net_bt_stack ro.bt.bdaddr_path
+    chown bluetooth net_bt_stack /dev/ttyS0
+    chmod 0600 /dev/ttyS0
     chmod 0660 /sys/class/rfkill/rfkill0/state
-    chown bluetooth bluetooth /sys/class/rfkill/rfkill0/state
-    chown bluetooth bluetooth /sys/class/rfkill/rfkill0/type
+    chown bluetooth net_bt_stack /sys/class/rfkill/rfkill0/state
+    chown bluetooth net_bt_stack /sys/class/rfkill/rfkill0/type
 
     # Permission for /proc/cmdline
     chmod 0644 /proc/cmdline
@@ -188,10 +183,6 @@ on boot
     chmod 0777 /dev/s5p-smem
     rm /data/app/tlcd_sock
 
-# phone
-    setprop ro.telephony.call_ring.multiple 0
-
-
 # Enable dithering algorithm
     setprop fb.force.dithering 1
 
@@ -199,16 +190,6 @@ on boot
 	mkdir /data/gps 0770 gps system
     chown gps system /data/gps
 	chmod 0770 /data/gps
-    chown gps system /system/etc/gps/glconfig.xml
-    chmod 0660 /system/etc/gps/glconfig.xml
-	chown gps system /system/etc/gps
-
-	chmod 0770 /system/etc/gps
-	chown gps system /system/bin/glgps
-	chmod 0770 /system/bin/glgps
-
-	chown gps system /system/bin/gpslogd
-	chmod 0777 /system/bin/gpslogd
 
     chmod 0777 /dev/i2c-1
     chmod 0777 /proc/i2c/i2c1/rxFIFO
@@ -228,10 +209,6 @@ on boot
     write /sys/class/gpio/gpio97/direction out
     write /sys/class/gpio/gpio97/value 0
     
-#for bluetooth. permission for host interface
-    chown root bluetooth /dev/ttyS0
-    chmod 0777 /dev/ttyS0
-
 # Permission for pm debug - force sleep
     chown system system /sys/module/rhea_pm_dbg/parameters/debug
 
@@ -278,12 +255,6 @@ on boot
     chown system radio /sys/class/camera/rear/isp_core
     chown system radio /sys/class/camera/front/front_camfw
     chown system radio /sys/class/camera/front/front_camtype
-    chown system radio /sys/class/flash/flash/flash_power
-    chown radio system /sys/devices/platform/samsung-pd.5/s3c-fimc.2/range_mode
-    chmod 0660 /sys/devices/platform/samsung-pd.5/s3c-fimc.2/range_mode
-
-# Switch Device
-    chown system radio /sys/class/sec/switch/adc
 
 #voice Soulution
     copy /system/etc/DiamondVoice.txt /data/DiamondVoice.txt
@@ -343,7 +314,15 @@ on fs
     chmod 0660 /sys/class/sec/sec_touchkey/touchkey_menu
     chown system system /sys/class/sec/sec_touchkey/touchkey_threshold
     chmod 0660 /sys/class/sec/sec_touchkey/touchkey_threshold
-    
+
+## Permissions for mDNIe
+    chown system media_rw /sys/class/mdnie/mdnie/mode
+    chown system media_rw /sys/class/mdnie/mdnie/outdoor
+    chown system media_rw /sys/class/mdnie/mdnie/scenario
+    chown system system /sys/class/mdnie/mdnie/negative
+    chown system system /sys/class/mdnie/mdnie/cabc
+   
+# Switch Device 
     chown system radio /sys/class/sec/switch/adc
 
 on post-fs
@@ -479,9 +458,10 @@ service bkmgrd /system/bin/bkmgrd
 on property:dev.bootcomplete=1
     write /sys/module/rhea_pwr_mgr/parameters/pm_late_init 1
     write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor ondemand
+    write /sys/block/mmcblk0/queue/scheduler cfq
 
 # fusewrapped external sdcard daemon running as media_rw (1023)
 service fuse_sdcard1 /system/bin/sdcard -u 1023 -g 1023 -d /mnt/media_rw/sdcard1 /storage/sdcard1
     class late_start
     disabled
-
+# init.rhea_ss_corsica.rc
